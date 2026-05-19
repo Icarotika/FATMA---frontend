@@ -80,7 +80,7 @@ function getSessionId() {
 
 async function sendMessage(pergunta) {
   const session_id = getSessionId();
-  const response = await fetch(API_URL, {
+  const response = await fetch(`${API_URL}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ pergunta, session_id }),
