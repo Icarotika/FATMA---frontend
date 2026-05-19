@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8000/chat";
+const API_URL = "https://fatma-backend.onrender.com";
 
 // Personalização da FATMA (troque apenas estas opções)
 const FATMA = {
