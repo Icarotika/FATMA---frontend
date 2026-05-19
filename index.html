@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Assistente Acadêmica</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="site-bg" aria-hidden="true"></div>
+
+    <!-- Botão flutuante para abrir/fechar o chatbot -->
+    <button id="chat-toggle" class="chat-toggle" aria-label="Abrir assistente">
+      💬
+    </button>
+
+    <!-- Widget do chatbot (inicialmente oculto) -->
+    <aside id="chat-widget" class="chat-widget" aria-hidden="true">
+      <header class="chat-widget-header">
+        <div>
+          <h2>Assistente Acadêmica</h2>
+          <p>Secretaria virtual</p>
+        </div>
+        <button id="chat-close" class="chat-close" aria-label="Fechar">
+          ✕
+        </button>
+      </header>
+
+      <main id="chat-history" class="chat-history" aria-live="polite"></main>
+
+      <form id="chat-form" class="chat-form">
+        <input
+          id="user-input"
+          type="text"
+          placeholder="Digite sua pergunta..."
+          autocomplete="off"
+          required
+        />
+        <button type="submit">Enviar</button>
+      </form>
+    </aside>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
