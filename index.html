@@ -22,7 +22,6 @@
     <!-- Widget do chatbot -->
     <aside id="chat-widget" class="chat-widget" aria-hidden="true" role="dialog" aria-label="FATMA — Assistente Acadêmica">
 
-      <!-- Header — FIX: img com id="fatma-avatar" agora existe no DOM -->
       <header class="chat-widget-header">
         <div class="chat-brand">
           <img
@@ -30,7 +29,7 @@
             class="fatma-avatar"
             src="assets/fatma-avatar.png"
             alt="Avatar FATMA"
-            onerror="this.style.display='none'; document.querySelector('.avatar-fallback').style.display='grid';"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';"
           />
           <div class="avatar-fallback" aria-hidden="true">F</div>
           <div class="chat-brand-info">
@@ -48,15 +47,22 @@
         </button>
       </header>
 
-      <!-- Histórico de mensagens -->
+      <!-- Histórico -->
       <main id="chat-history" class="chat-history" aria-live="polite" aria-relevant="additions"></main>
 
-      <!-- Chips de sugestão rápida -->
+      <!--
+        Chips de sugestão rápida.
+        Ficam visíveis apenas antes do usuário enviar qualquer mensagem.
+        Ao clicar, o script.js preenche o input e dispara o submit automaticamente.
+      -->
       <div class="suggestions" id="suggestions" role="list" aria-label="Sugestões rápidas">
         <button class="chip" data-msg="Como faço minha matrícula?">Matrícula</button>
-        <button class="chip" data-msg="Quais são os prazos do semestre?">Prazos</button>
-        <button class="chip" data-msg="Como solicitar documentos?">Documentos</button>
+        <button class="chip" data-msg="Como solicitar documentos acadêmicos?">Documentos</button>
         <button class="chip" data-msg="Como trancar o semestre?">Trancamento</button>
+        <button class="chip" data-msg="Quero solicitar transferência de horário">Transferência de Horário</button>
+        <button class="chip" data-msg="Quais são as datas do calendário acadêmico?">Calendário</button>
+        <button class="chip" data-msg="Preciso de orientação sobre estágio">Estágio</button>
+        <button class="chip" data-msg="Quero ver as disciplinas e professores">Disciplinas e Professores</button>
       </div>
 
       <!-- Formulário -->
