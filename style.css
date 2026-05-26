@@ -224,6 +224,7 @@ body.chat-open .chat-widget {
 .msg-row {
   display: flex;
   gap: 8px;
+  align-items: flex-end;
   animation: msg-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -235,29 +236,46 @@ body.chat-open .chat-widget {
 .msg-row.user { justify-content: flex-end; }
 .msg-row.bot  { justify-content: flex-start; }
 
-.msg-meta {
+/* Avatar pequeno dentro da conversa — FIX: tamanho fixo e contido */
+.conv-avatar {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;   /* impede que flex comprima */
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1.5px solid var(--border);
+  align-self: flex-end;
+  flex-shrink: 0;
+}
+
+.conv-avatar--fallback {
+  display: grid;
+  place-items: center;
+  background: var(--primary);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Wrapper interno de cada mensagem */
+.msg-inner {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
-  max-width: 82%;
+  gap: 3px;
+  max-width: 78%;
 }
 
-.msg-meta .bot-name {
-  font-size: 0.72rem;
+.msg-inner--user {
+  align-items: flex-end;
+}
+
+.bot-name {
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--primary);
-  padding-left: 4px;
-}
-
-.msg-meta .bot-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  object-fit: cover;
-  flex-shrink: 0;
-  align-self: flex-end;
-  border: 1.5px solid var(--border);
+  padding-left: 3px;
 }
 
 .msg-bubble {
@@ -266,7 +284,7 @@ body.chat-open .chat-widget {
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .msg-bubble.user {
@@ -284,16 +302,16 @@ body.chat-open .chat-widget {
 }
 
 .msg-time {
-  font-size: 0.68rem;
+  font-size: 0.67rem;
   color: var(--text-muted);
-  padding: 0 4px;
-  align-self: flex-end;
+  padding: 0 3px;
 }
 
 /* ── Typing indicator ──────────────────────────────────────────────────── */
 .typing-row {
   display: flex;
   gap: 8px;
+  align-items: flex-end;
   animation: msg-in 220ms ease both;
 }
 
@@ -330,9 +348,13 @@ body.chat-open .chat-widget {
   gap: 6px;
   padding: 8px 14px;
   overflow-x: auto;
+  overflow-y: hidden;
   background: #f8fafc;
   border-top: 1px solid var(--border);
   scrollbar-width: none;
+  /* valores iniciais para animação de saída via JS */
+  max-height: 52px;
+  opacity: 1;
 }
 
 .suggestions::-webkit-scrollbar { display: none; }
@@ -348,8 +370,11 @@ body.chat-open .chat-widget {
   font-weight: 500;
   font-family: var(--font-body);
   cursor: pointer;
-  transition: all 160ms ease;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
   white-space: nowrap;
+  /* garante que chip é clicável mesmo em mobile */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
 .chip:hover {
@@ -357,6 +382,10 @@ body.chat-open .chat-widget {
   color: #fff;
   border-color: var(--primary);
   transform: translateY(-1px);
+}
+
+.chip:active {
+  transform: scale(0.95);
 }
 
 /* ── Form ──────────────────────────────────────────────────────────────── */
