@@ -1,9 +1,5 @@
 const API_URL = "https://fatma-backend.onrender.com";
-
-const FATMA = {
-  name:   "FATMA",
-  avatar: "assets/fatma-avatar.png",
-};
+const FATMA   = { name:"FATMA", avatar:"assets/fatma-avatar.png" };
 
 // ── DOM ───────────────────────────────────────────────────────────────────────
 const chatToggle    = document.getElementById("chat-toggle");
@@ -18,15 +14,124 @@ const topicsPanel   = document.getElementById("topics-panel");
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let userHasSentMessage = false;
+let activeTTSBtn       = null;   // rastreia botão TTS atualmente tocando
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// TEXT-TO-SPEECH
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Ícone de alto-falante (estado normal)
+const ICON_SPEAKER = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+  stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+  <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+  <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+</svg>`;
+
+// Ícone de parar (estado tocando)
+const ICON_STOP = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"
+  stroke="none">
+  <rect x="4" y="4" width="16" height="16" rx="2"/>
+</svg>`;
+
+// Carrega vozes — necessário porque a API Web Speech carrega de forma assíncrona
+let cachedVoice = null;
+
+function loadVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  // Prioridade 1: pt-BR feminino explícito
+  let v = voices.find(v => v.lang === "pt-BR" &&
+    /female|feminina|woman|fem/i.test(v.name));
+
+  // Prioridade 2: "Google português do Brasil" (padrão feminino no Chrome)
+  if (!v) v = voices.find(v => v.lang === "pt-BR" &&
+    /google/i.test(v.name));
+
+  // Prioridade 3: qualquer pt-BR
+  if (!v) v = voices.find(v => v.lang === "pt-BR");
+
+  // Prioridade 4: qualquer português
+  if (!v) v = voices.find(v => v.lang.startsWith("pt"));
+
+  cachedVoice = v || null;
+  return cachedVoice;
+}
+
+// Tenta carregar na inicialização e quando as vozes ficam disponíveis
+loadVoice();
+if (window.speechSynthesis.onvoiceschanged !== undefined) {
+  window.speechSynthesis.onvoiceschanged = () => { loadVoice(); };
+}
+
+// Limpa estado do botão ativo sem parar fala (chamado quando utterance termina)
+function clearActiveTTSBtn() {
+  if (activeTTSBtn) {
+    activeTTSBtn.innerHTML = ICON_SPEAKER;
+    activeTTSBtn.classList.remove("playing");
+    activeTTSBtn.setAttribute("aria-label", "Ouvir mensagem");
+    activeTTSBtn = null;
+  }
+}
+
+// Para qualquer TTS em andamento e reseta o botão
+function stopTTS() {
+  window.speechSynthesis.cancel();
+  clearActiveTTSBtn();
+}
+
+// Cria e retorna um botão TTS para um texto específico
+function makeTTSButton(text) {
+  const btn = document.createElement("button");
+  btn.className = "tts-btn";
+  btn.setAttribute("aria-label", "Ouvir mensagem");
+  btn.title     = "Ouvir mensagem";
+  btn.innerHTML = ICON_SPEAKER;
+
+  btn.addEventListener("click", () => {
+    // Se este botão já está tocando → parar
+    if (btn === activeTTSBtn) {
+      stopTTS();
+      return;
+    }
+
+    // Parar qualquer outro que esteja tocando
+    stopTTS();
+
+    // Preparar utterance
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang  = "pt-BR";
+    utt.rate  = 0.92;    // um pouco mais devagar que o padrão — mais calma
+    utt.pitch = 1.05;    // leve elevação para soar mais feminino/atento
+
+    const voice = cachedVoice || loadVoice();
+    if (voice) utt.voice = voice;
+
+    utt.onend = () => {
+      if (activeTTSBtn === btn) clearActiveTTSBtn();
+    };
+    utt.onerror = () => {
+      if (activeTTSBtn === btn) clearActiveTTSBtn();
+    };
+
+    // Atualizar visual do botão
+    btn.innerHTML = ICON_STOP;
+    btn.classList.add("playing");
+    btn.setAttribute("aria-label", "Parar leitura");
+    activeTTSBtn = btn;
+
+    window.speechSynthesis.speak(utt);
+  });
+
+  return btn;
+}
+
+// ── Helpers gerais ────────────────────────────────────────────────────────────
 function escapeHtml(str) {
   return String(str)
-    .replace(/&/g,  "&amp;")
-    .replace(/</g,  "&lt;")
-    .replace(/>/g,  "&gt;")
-    .replace(/"/g,  "&quot;")
-    .replace(/'/g,  "&#039;");
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
 function nowTime() {
@@ -42,14 +147,13 @@ function getSessionId() {
   return id;
 }
 
-// ── Aba de tópicos recolhível ──────────────────────────────────────────────────
+// ── Aba de tópicos ────────────────────────────────────────────────────────────
 topicsToggle.addEventListener("click", () => {
-  const isOpen = topicsPanel.classList.toggle("open");
-  topicsToggle.setAttribute("aria-expanded", String(isOpen));
-  topicsPanel.setAttribute("aria-hidden",    String(!isOpen));
+  const open = topicsPanel.classList.toggle("open");
+  topicsToggle.setAttribute("aria-expanded", String(open));
+  topicsPanel.setAttribute("aria-hidden",    String(!open));
 });
 
-// Chips: clique → preenche input → dispara envio
 document.querySelectorAll(".chip").forEach((chip) => {
   chip.addEventListener("click", () => {
     const msg = chip.dataset.msg;
@@ -59,26 +163,25 @@ document.querySelectorAll(".chip").forEach((chip) => {
   });
 });
 
-// Esconde a aba inteira após a primeira mensagem
 function hideTopics() {
   if (!topicsWrapper) return;
   topicsWrapper.style.transition = "opacity 200ms ease, max-height 250ms ease";
-  topicsWrapper.style.opacity    = "0";
-  topicsWrapper.style.maxHeight  = "0";
-  topicsWrapper.style.overflow   = "hidden";
-  topicsWrapper.style.borderTop  = "none";
+  topicsWrapper.style.opacity   = "0";
+  topicsWrapper.style.maxHeight = "0";
+  topicsWrapper.style.overflow  = "hidden";
+  topicsWrapper.style.borderTop = "none";
   setTimeout(() => { topicsWrapper.style.display = "none"; }, 260);
 }
 
 // ── Mensagens ─────────────────────────────────────────────────────────────────
 function makeBotAvatar() {
-  const img   = document.createElement("img");
-  img.src     = FATMA.avatar;
-  img.alt     = FATMA.name;
+  const img     = document.createElement("img");
+  img.src       = FATMA.avatar;
+  img.alt       = FATMA.name;
   img.className = "conv-avatar";
-  img.onerror = () => {
+  img.onerror   = () => {
     const fb = document.createElement("div");
-    fb.className = "conv-avatar conv-avatar--fallback";
+    fb.className   = "conv-avatar conv-avatar--fallback";
     fb.textContent = "F";
     img.replaceWith(fb);
   };
@@ -90,7 +193,7 @@ function addMessage(text, sender, opts = {}) {
   row.classList.add("msg-row", sender === "bot" ? "bot" : "user");
 
   if (sender === "bot") {
-    const inner  = document.createElement("div");
+    const inner = document.createElement("div");
     inner.className = "msg-inner";
 
     const nameEl = document.createElement("span");
@@ -102,16 +205,30 @@ function addMessage(text, sender, opts = {}) {
     if (opts.error) bubble.classList.add("error");
     bubble.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
 
+    // Rodapé: hora + botão TTS (lado direito da hora)
+    const footer = document.createElement("div");
+    footer.className = "msg-footer";
+
     const time = document.createElement("span");
     time.className   = "msg-time";
     time.textContent = nowTime();
 
+    // TTS — não mostrar para links puros (easter egg secreto)
+    const isLink = /^https?:\/\/\S+$/.test(text.trim());
+    if (!isLink) {
+      footer.appendChild(time);
+      footer.appendChild(makeTTSButton(text));
+    } else {
+      footer.appendChild(time);
+    }
+
     inner.appendChild(nameEl);
     inner.appendChild(bubble);
-    inner.appendChild(time);
+    inner.appendChild(footer);
 
     row.appendChild(makeBotAvatar());
     row.appendChild(inner);
+
   } else {
     const wrap = document.createElement("div");
     wrap.className = "msg-inner msg-inner--user";
@@ -120,12 +237,15 @@ function addMessage(text, sender, opts = {}) {
     bubble.classList.add("msg-bubble", "user");
     bubble.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
 
+    const footer = document.createElement("div");
+    footer.className = "msg-footer";
     const time = document.createElement("span");
     time.className   = "msg-time";
     time.textContent = nowTime();
+    footer.appendChild(time);
 
     wrap.appendChild(bubble);
-    wrap.appendChild(time);
+    wrap.appendChild(footer);
     row.appendChild(wrap);
   }
 
@@ -138,7 +258,6 @@ function showTyping() {
   const row = document.createElement("div");
   row.classList.add("msg-row", "bot", "typing-row");
   row.id = "typing-indicator";
-
   const bubble = document.createElement("div");
   bubble.className = "typing-bubble";
   for (let i = 0; i < 3; i++) {
@@ -146,24 +265,21 @@ function showTyping() {
     dot.className = "typing-dot";
     bubble.appendChild(dot);
   }
-
   row.appendChild(makeBotAvatar());
   row.appendChild(bubble);
   chatHistory.appendChild(row);
   chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
-function hideTyping() {
-  document.getElementById("typing-indicator")?.remove();
-}
+function hideTyping() { document.getElementById("typing-indicator")?.remove(); }
 
 // ── API ───────────────────────────────────────────────────────────────────────
 async function sendMessage(pergunta) {
   const session_id = getSessionId();
   const resp = await fetch(`${API_URL}/chat`, {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ pergunta, session_id }),
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ pergunta, session_id }),
   });
   if (!resp.ok) throw new Error("Falha na comunicação.");
   return resp.json();
@@ -175,18 +291,14 @@ chatForm.addEventListener("submit", async (e) => {
   const pergunta = userInput.value.trim();
   if (!pergunta) return;
 
-  // Primeira mensagem: fecha e remove a aba de tópicos
-  if (!userHasSentMessage) {
-    userHasSentMessage = true;
-    hideTopics();
-  }
+  if (!userHasSentMessage) { userHasSentMessage = true; hideTopics(); }
+  stopTTS();  // para qualquer áudio ao enviar nova mensagem
 
   addMessage(pergunta, "user");
   userInput.value = "";
 
-  const submitBtn = chatForm.querySelector("button[type='submit']");
-  userInput.disabled  = true;
-  submitBtn.disabled  = true;
+  const btn = chatForm.querySelector("button[type='submit']");
+  userInput.disabled = btn.disabled = true;
   showTyping();
 
   try {
@@ -196,15 +308,14 @@ chatForm.addEventListener("submit", async (e) => {
     addMessage(data.resposta, "bot");
   } catch {
     hideTyping();
-    addMessage("Não foi possível obter resposta agora. Tente novamente em instantes.", "bot", { error: true });
+    addMessage("Não foi possível obter resposta agora. Tente novamente em instantes.", "bot", { error:true });
   } finally {
-    userInput.disabled = false;
-    submitBtn.disabled = false;
+    userInput.disabled = btn.disabled = false;
     userInput.focus();
   }
 });
 
-// ── Abrir/fechar widget ───────────────────────────────────────────────────────
+// ── Abrir/fechar ──────────────────────────────────────────────────────────────
 function openChat() {
   document.body.classList.add("chat-open");
   chatWidget.setAttribute("aria-hidden", "false");
@@ -217,8 +328,8 @@ function openChat() {
   }
   userInput.focus();
 }
-
 function closeChat() {
+  stopTTS();
   document.body.classList.remove("chat-open");
   chatWidget.setAttribute("aria-hidden", "true");
 }
