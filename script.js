@@ -1,93 +1,100 @@
 const API_URL = "https://fatma-backend.onrender.com";
 
 const FATMA = {
-  name: "FATMA",
+  name:   "FATMA",
   avatar: "assets/fatma-avatar.png",
 };
 
-// ── DOM refs ──────────────────────────────────────────────────────────────
-const chatToggle   = document.getElementById("chat-toggle");
-const chatWidget   = document.getElementById("chat-widget");
-const chatClose    = document.getElementById("chat-close");
-const chatHistory  = document.getElementById("chat-history");
-const chatForm     = document.getElementById("chat-form");
-const userInput    = document.getElementById("user-input");
-const suggestionsEl = document.getElementById("suggestions");
+// ── DOM ───────────────────────────────────────────────────────────────────────
+const chatToggle    = document.getElementById("chat-toggle");
+const chatWidget    = document.getElementById("chat-widget");
+const chatClose     = document.getElementById("chat-close");
+const chatHistory   = document.getElementById("chat-history");
+const chatForm      = document.getElementById("chat-form");
+const userInput     = document.getElementById("user-input");
+const topicsWrapper = document.getElementById("topics-wrapper");
+const topicsToggle  = document.getElementById("topics-toggle");
+const topicsPanel   = document.getElementById("topics-panel");
 
-// ── State ─────────────────────────────────────────────────────────────────
-let userHasSentMessage = false;   // controla visibilidade dos chips
+// ── State ─────────────────────────────────────────────────────────────────────
+let userHasSentMessage = false;
 
-// ── Helpers ───────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function escapeHtml(str) {
   return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/&/g,  "&amp;")
+    .replace(/</g,  "&lt;")
+    .replace(/>/g,  "&gt;")
+    .replace(/"/g,  "&quot;")
+    .replace(/'/g,  "&#039;");
 }
 
 function nowTime() {
-  return new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
 }
 
 function getSessionId() {
   let id = localStorage.getItem("fatma_session_id");
   if (!id) {
-    id = (crypto.randomUUID?.() ?? Date.now().toString(36) + Math.random().toString(36).slice(2));
+    id = crypto.randomUUID?.() ?? (Date.now().toString(36) + Math.random().toString(36).slice(2));
     localStorage.setItem("fatma_session_id", id);
   }
   return id;
 }
 
-// ── Chips: só aparecem antes do usuário enviar qualquer mensagem ───────────
-function hideSuggestions() {
-  if (!suggestionsEl) return;
-  suggestionsEl.style.transition = "opacity 200ms ease, max-height 250ms ease";
-  suggestionsEl.style.opacity = "0";
-  suggestionsEl.style.maxHeight = "0";
-  suggestionsEl.style.padding = "0";
-  suggestionsEl.style.borderTop = "none";
-  // remove do fluxo após animação
-  setTimeout(() => {
-    suggestionsEl.style.display = "none";
-  }, 260);
-}
+// ── Aba de tópicos recolhível ──────────────────────────────────────────────────
+topicsToggle.addEventListener("click", () => {
+  const isOpen = topicsPanel.classList.toggle("open");
+  topicsToggle.setAttribute("aria-expanded", String(isOpen));
+  topicsPanel.setAttribute("aria-hidden",    String(!isOpen));
+});
 
-// Adiciona handler nos chips: clique → preenche input → dispara envio
+// Chips: clique → preenche input → dispara envio
 document.querySelectorAll(".chip").forEach((chip) => {
   chip.addEventListener("click", () => {
     const msg = chip.dataset.msg;
     if (!msg) return;
     userInput.value = msg;
-    chatForm.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    chatForm.dispatchEvent(new Event("submit", { cancelable:true, bubbles:true }));
   });
 });
 
-// ── Mensagens ─────────────────────────────────────────────────────────────
+// Esconde a aba inteira após a primeira mensagem
+function hideTopics() {
+  if (!topicsWrapper) return;
+  topicsWrapper.style.transition = "opacity 200ms ease, max-height 250ms ease";
+  topicsWrapper.style.opacity    = "0";
+  topicsWrapper.style.maxHeight  = "0";
+  topicsWrapper.style.overflow   = "hidden";
+  topicsWrapper.style.borderTop  = "none";
+  setTimeout(() => { topicsWrapper.style.display = "none"; }, 260);
+}
+
+// ── Mensagens ─────────────────────────────────────────────────────────────────
+function makeBotAvatar() {
+  const img   = document.createElement("img");
+  img.src     = FATMA.avatar;
+  img.alt     = FATMA.name;
+  img.className = "conv-avatar";
+  img.onerror = () => {
+    const fb = document.createElement("div");
+    fb.className = "conv-avatar conv-avatar--fallback";
+    fb.textContent = "F";
+    img.replaceWith(fb);
+  };
+  return img;
+}
+
 function addMessage(text, sender, opts = {}) {
   const row = document.createElement("div");
   row.classList.add("msg-row", sender === "bot" ? "bot" : "user");
 
   if (sender === "bot") {
-    // --- avatar pequeno + nome + balão ---
-    const avatarImg = document.createElement("img");
-    avatarImg.src    = FATMA.avatar;
-    avatarImg.alt    = FATMA.name;
-    avatarImg.className = "conv-avatar";
-    // fallback se imagem não existir
-    avatarImg.onerror = () => {
-      const fb = document.createElement("div");
-      fb.className = "conv-avatar conv-avatar--fallback";
-      fb.textContent = "F";
-      avatarImg.replaceWith(fb);
-    };
-
-    const inner = document.createElement("div");
+    const inner  = document.createElement("div");
     inner.className = "msg-inner";
 
     const nameEl = document.createElement("span");
-    nameEl.className = "bot-name";
+    nameEl.className   = "bot-name";
     nameEl.textContent = FATMA.name;
 
     const bubble = document.createElement("div");
@@ -96,31 +103,29 @@ function addMessage(text, sender, opts = {}) {
     bubble.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
 
     const time = document.createElement("span");
-    time.className = "msg-time";
+    time.className   = "msg-time";
     time.textContent = nowTime();
 
     inner.appendChild(nameEl);
     inner.appendChild(bubble);
     inner.appendChild(time);
 
-    row.appendChild(avatarImg);
+    row.appendChild(makeBotAvatar());
     row.appendChild(inner);
-
   } else {
-    // --- balão do usuário ---
+    const wrap = document.createElement("div");
+    wrap.className = "msg-inner msg-inner--user";
+
     const bubble = document.createElement("div");
     bubble.classList.add("msg-bubble", "user");
     bubble.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
 
     const time = document.createElement("span");
-    time.className = "msg-time";
+    time.className   = "msg-time";
     time.textContent = nowTime();
 
-    const wrap = document.createElement("div");
-    wrap.className = "msg-inner msg-inner--user";
     wrap.appendChild(bubble);
     wrap.appendChild(time);
-
     row.appendChild(wrap);
   }
 
@@ -128,22 +133,11 @@ function addMessage(text, sender, opts = {}) {
   chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
-// ── Typing indicator ──────────────────────────────────────────────────────
+// ── Typing indicator ──────────────────────────────────────────────────────────
 function showTyping() {
   const row = document.createElement("div");
   row.classList.add("msg-row", "bot", "typing-row");
   row.id = "typing-indicator";
-
-  const avatarImg = document.createElement("img");
-  avatarImg.src = FATMA.avatar;
-  avatarImg.alt = FATMA.name;
-  avatarImg.className = "conv-avatar";
-  avatarImg.onerror = () => {
-    const fb = document.createElement("div");
-    fb.className = "conv-avatar conv-avatar--fallback";
-    fb.textContent = "F";
-    avatarImg.replaceWith(fb);
-  };
 
   const bubble = document.createElement("div");
   bubble.className = "typing-bubble";
@@ -153,7 +147,7 @@ function showTyping() {
     bubble.appendChild(dot);
   }
 
-  row.appendChild(avatarImg);
+  row.appendChild(makeBotAvatar());
   row.appendChild(bubble);
   chatHistory.appendChild(row);
   chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -163,35 +157,36 @@ function hideTyping() {
   document.getElementById("typing-indicator")?.remove();
 }
 
-// ── API ───────────────────────────────────────────────────────────────────
+// ── API ───────────────────────────────────────────────────────────────────────
 async function sendMessage(pergunta) {
   const session_id = getSessionId();
-  const response = await fetch(`${API_URL}/chat`, {
-    method: "POST",
+  const resp = await fetch(`${API_URL}/chat`, {
+    method:  "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ pergunta, session_id }),
+    body:    JSON.stringify({ pergunta, session_id }),
   });
-  if (!response.ok) throw new Error("Falha na comunicação com o servidor.");
-  return response.json();
+  if (!resp.ok) throw new Error("Falha na comunicação.");
+  return resp.json();
 }
 
-// ── Submit ────────────────────────────────────────────────────────────────
+// ── Envio ─────────────────────────────────────────────────────────────────────
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const pergunta = userInput.value.trim();
   if (!pergunta) return;
 
-  // Primeira mensagem: esconde chips permanentemente
+  // Primeira mensagem: fecha e remove a aba de tópicos
   if (!userHasSentMessage) {
     userHasSentMessage = true;
-    hideSuggestions();
+    hideTopics();
   }
 
   addMessage(pergunta, "user");
   userInput.value = "";
-  userInput.disabled = true;
-  chatForm.querySelector("button").disabled = true;
 
+  const submitBtn = chatForm.querySelector("button[type='submit']");
+  userInput.disabled  = true;
+  submitBtn.disabled  = true;
   showTyping();
 
   try {
@@ -199,24 +194,24 @@ chatForm.addEventListener("submit", async (e) => {
     if (data?.session_id) localStorage.setItem("fatma_session_id", data.session_id);
     hideTyping();
     addMessage(data.resposta, "bot");
-  } catch (err) {
+  } catch {
     hideTyping();
-    addMessage("Não foi possível obter resposta no momento. Tente novamente em instantes.", "bot", { error: true });
+    addMessage("Não foi possível obter resposta agora. Tente novamente em instantes.", "bot", { error: true });
   } finally {
     userInput.disabled = false;
-    chatForm.querySelector("button").disabled = false;
+    submitBtn.disabled = false;
     userInput.focus();
   }
 });
 
-// ── Toggle open/close ─────────────────────────────────────────────────────
+// ── Abrir/fechar widget ───────────────────────────────────────────────────────
 function openChat() {
   document.body.classList.add("chat-open");
   chatWidget.setAttribute("aria-hidden", "false");
-
   if (!chatHistory.hasChildNodes()) {
     addMessage(
-      "Olá! Eu sou a FATMA, sua assistente acadêmica da Fatec Zona Sul. 😊\n\nPosso ajudar com matrícula, trancamento, documentos, prazos e informações sobre disciplinas.\n\nComo posso te ajudar hoje?",
+      "Olá! Eu sou a FATMA, sua assistente acadêmica da Fatec Zona Sul. 😊\n\n" +
+      "Clique em \"Tópicos rápidos\" abaixo ou digite sua dúvida para começar!",
       "bot"
     );
   }
@@ -231,9 +226,5 @@ function closeChat() {
 chatToggle.addEventListener("click", () => {
   document.body.classList.contains("chat-open") ? closeChat() : openChat();
 });
-
 chatClose.addEventListener("click", closeChat);
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") closeChat();
-});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeChat(); });

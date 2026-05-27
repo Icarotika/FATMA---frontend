@@ -12,32 +12,22 @@
   <body>
     <div class="site-bg" aria-hidden="true"></div>
 
-    <!-- Botão flutuante -->
     <button id="chat-toggle" class="chat-toggle" aria-label="Abrir assistente FATMA">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
     </button>
 
-    <!-- Widget do chatbot -->
     <aside id="chat-widget" class="chat-widget" aria-hidden="true" role="dialog" aria-label="FATMA — Assistente Acadêmica">
 
       <header class="chat-widget-header">
         <div class="chat-brand">
-          <img
-            id="fatma-avatar"
-            class="fatma-avatar"
-            src="assets/fatma-avatar.png"
-            alt="Avatar FATMA"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';"
-          />
+          <img id="fatma-avatar" class="fatma-avatar" src="assets/fatma-avatar.png" alt="Avatar FATMA"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='grid';" />
           <div class="avatar-fallback" aria-hidden="true">F</div>
           <div class="chat-brand-info">
             <h2>FATMA</h2>
-            <p>
-              <span class="status-dot" aria-hidden="true"></span>
-              Assistente Acadêmica · Online
-            </p>
+            <p><span class="status-dot" aria-hidden="true"></span>Assistente Acadêmica · Online</p>
           </div>
         </div>
         <button id="chat-close" class="chat-close" aria-label="Fechar chat">
@@ -47,34 +37,42 @@
         </button>
       </header>
 
-      <!-- Histórico -->
       <main id="chat-history" class="chat-history" aria-live="polite" aria-relevant="additions"></main>
 
       <!--
-        Chips de sugestão rápida.
-        Ficam visíveis apenas antes do usuário enviar qualquer mensagem.
-        Ao clicar, o script.js preenche o input e dispara o submit automaticamente.
+        Aba recolhível de tópicos rápidos.
+        Aparece apenas antes do usuário enviar qualquer mensagem.
+        Ao clicar num chip, o script preenche o input e dispara o envio.
       -->
-      <div class="suggestions" id="suggestions" role="list" aria-label="Sugestões rápidas">
-        <button class="chip" data-msg="Como faço minha matrícula?">Matrícula</button>
-        <button class="chip" data-msg="Como solicitar documentos acadêmicos?">Documentos</button>
-        <button class="chip" data-msg="Como trancar o semestre?">Trancamento</button>
-        <button class="chip" data-msg="Quero solicitar transferência de horário">Transferência de Horário</button>
-        <button class="chip" data-msg="Quais são as datas do calendário acadêmico?">Calendário</button>
-        <button class="chip" data-msg="Preciso de orientação sobre estágio">Estágio</button>
-        <button class="chip" data-msg="Quero ver as disciplinas e professores">Disciplinas e Professores</button>
+      <div class="topics-wrapper" id="topics-wrapper">
+        <button class="topics-toggle" id="topics-toggle" aria-expanded="false" aria-controls="topics-panel">
+          <span class="topics-toggle-label">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            Tópicos rápidos
+          </span>
+          <svg class="topics-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </button>
+
+        <div class="topics-panel" id="topics-panel" aria-hidden="true">
+          <div class="chips-grid" id="suggestions" role="list" aria-label="Sugestões rápidas">
+            <button class="chip" data-msg="Como faço minha matrícula?">📋 Matrícula</button>
+            <button class="chip" data-msg="Como solicitar documentos acadêmicos?">📄 Documentos</button>
+            <button class="chip" data-msg="Como trancar o semestre?">🔒 Trancamento</button>
+            <button class="chip" data-msg="Quero solicitar transferência de horário">🔄 Transferência de Horário</button>
+            <button class="chip" data-msg="Quais são as datas do calendário acadêmico?">📅 Calendário</button>
+            <button class="chip" data-msg="Preciso de orientação sobre estágio">🎓 Estágio</button>
+            <button class="chip" data-msg="Quero ver as disciplinas e professores">📚 Disciplinas e Professores</button>
+          </div>
+        </div>
       </div>
 
-      <!-- Formulário -->
       <form id="chat-form" class="chat-form" autocomplete="off">
-        <input
-          id="user-input"
-          type="text"
-          placeholder="Digite sua dúvida..."
-          autocomplete="off"
-          maxlength="500"
-          aria-label="Mensagem para FATMA"
-        />
+        <input id="user-input" type="text" placeholder="Digite sua dúvida..."
+               autocomplete="off" maxlength="500" aria-label="Mensagem para FATMA" />
         <button type="submit" aria-label="Enviar mensagem">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
